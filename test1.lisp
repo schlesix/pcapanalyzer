@@ -20,9 +20,11 @@
 
 (with-pcap-reader (reader "test.pcapng" :snaplen 1500)
   "Read Frames from the file test.pcapng an extract L2 and L3 informations. "
+  ;; Loop through all Frames in the pcap file
   (capture reader -1
-	   ;; Loop through all Frames in the pcap file
            (lambda (sec usec caplen len buffer)
+	     ;; next command doesn't work
+	     ;;(setq hashwert (sb-md5.md5sum-stream (buffer)))
 	     ;; 'buffer' contains the current frame.
 	     ;; 
 	     ;; Extract time and length informations
