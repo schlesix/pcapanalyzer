@@ -23,8 +23,6 @@
   ;; Loop through all Frames in the pcap file
   (capture reader -1
            (lambda (sec usec caplen len buffer)
-	     ;; next command doesn't work
-	     ;;(setq hashwert (sb-md5.md5sum-stream (buffer)))
 	     ;; 'buffer' contains the current frame.
 	     ;; 
 	     ;; Extract time and length informations
@@ -141,8 +139,11 @@
 	     ;; TCP urgent pointer
 	     (setq tcp_urg  (concatenate 'string
 					    (int2hex (aref buffer 52)) (int2hex (aref buffer 53))))
+	     ;; next command doesn't work
+	       ;(setq hashwert (sxhash (list 'list buffer)))
+					;(princ hashwert)
 	     ;; Print extracted informations
-	     (princ (concatenate  'string "*" src_mac " => " dst_mac " FT: " frame_type " IPv: " ip_ver " IHL: " (write-to-string ihl) " TOS: " tos " IPLEN: " ip_len " IPID: " ip_id " IPOFF: " ip_off " IPTTL: " ip_ttl " IPP: " ip_p " IPSUM: " ip_sum " IPSRC: " ip_src ":" tcp_src " IPDST: " ip_dst ":" tcp_dst " tcp_seq: " tcp_seq " tcp_ack: " tcp_ack " TCPOFF: " tcp_off " TCPRSV: " tcp_rsv " TCPFLG: " tcp_flg " TCPWND: " tcp_wnd " TCPCHK: " tcp_chk " TCPURG: " tcp_urg))
+	     ;;(princ (concatenate  'string "*" src_mac " => " dst_mac " FT: " frame_type " IPv: " ip_ver " IHL: " (write-to-string ihl) " TOS: " tos " IPLEN: " ip_len " IPID: " ip_id " IPOFF: " ip_off " IPTTL: " ip_ttl " IPP: " ip_p " IPSUM: " ip_sum " IPSRC: " ip_src ":" tcp_src " IPDST: " ip_dst ":" tcp_dst " tcp_seq: " tcp_seq " tcp_ack: " tcp_ack " TCPOFF: " tcp_off " TCPRSV: " tcp_rsv " TCPFLG: " tcp_flg " TCPWND: " tcp_wnd " TCPCHK: " tcp_chk " TCPURG: " tcp_urg))
 	       (terpri)
 	       )
 	     )))
