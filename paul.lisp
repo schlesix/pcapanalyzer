@@ -3,8 +3,8 @@
 ;; - The program uses the "plokami" module to extract Ethernet frames from the pcap.
 ;;
 
-(ql:quickload "plokami")
-(Use-package :plokami)
+;(ql:quickload "plokami")
+;(Use-package :plokami)
 ;;(find-all-devs)
 
 (defun int2hex (int_value)
@@ -18,22 +18,22 @@
     hexstr
     ))
 
+
 (defun pcap-einlesen ()
-					; (let ((octets nil)(zahl 0))
-  (let ((file (open #P"/Users/thomas/Documents/Development/pcapanalyzer/test.csv" :direction :output
+      "Read Frames from the file test.pcapng an extract L2 and L3 informations. "
+
+
+(let ((file (open #P"/Users/thomas/Documents/Development/pcapanalyzer/test.csv" :direction :output
 										  :if-exists :append
 										  :if-does-not-exist :create)))
-    (write-line "TimeIndexSec;TimeIndexUsec;CaptureLength;Length;DstMAC;SrcMAC;FrameType;IpVer;IpIHL;IpTOS;IpLen;IpId;IpOffset;IpTTL;IpL4Proto;IpChkSum;IpSrc;IpDst;TcpSrcPort;TcpDstPort;TcpSeqNo;TcpAckNo;TcpOffset;TcpResv;TcpFlags;TcpWnd;TcpChkSum;TcpUrgPtr" file)
+(write-line "TimeIndexSec;TimeIndexUsec;CaptureLength;Length;DstMAC;SrcMAC;FrameType;IpVer;IpIHL;IpTOS;IpLen;IpId;IpOffset;IpTTL;IpL4Proto;IpChkSum;IpSrc;IpDst;TcpSrcPort;TcpDstPort;TcpSeqNo;TcpAckNo;TcpOffset;TcpResv;TcpFlags;TcpWnd;TcpChkSum;TcpUrgPtr" file)
 
-    (with-pcap-reader (reader "/Users/thomas/Documents/Development/pcapanalyzer/test.pcapng" :snaplen 1500)
-      "Read Frames from the file test.pcapng an extract L2 and L3 informations. "
-      ;; Loop through all Frames in the pcap file
-      (capture reader -1
+    (plokami:with-pcap-reader (reader "/Users/thomas/Documents/Development/pcapanalyzer/test.pcapng" :snaplen 1500)
+
+      (plokami:capture reader -1
                (lambda (sec usec caplen len buffer)
-		 (let ((zeile nil)(zahl 0)(dst_mac "") (src_mac "") )
-		   ;; 'buffer' contains the current frame.
-		   ;; 
-		   ;; Extract time and length informations
+		 (let ((zeile nil)(zahl 0)(dst_mac "")(src_mac "") (ip_ver "") (ip_ihl "") (ip_len "") (ip_id "") (ip_off "") (ip_ttl "") (ip_p "") (ip_sum "") (ip_src "") (ip_dst "") (tcp_src "") (tcp_dst "") (tcp_seq "") (tcp_ack "") (tcp_off "") (tcp_rsv "") (tcp_flg "") (tcp_wnd "") (tcp_chk "") (tcp_urg "")  )
+
 		   (setq zeile "")
 		   (princ ">")
 		   (terpri)
@@ -58,17 +58,73 @@
 					       (int2hex (aref buffer 2)) ":"
 					       (int2hex (aref buffer 3)) ":"
 					       (int2hex (aref buffer 4)) ":"
-					       (int2hex (aref buffer 5))))
+					       (int2hex (aref buffer 5)))) ; setq dst_mac
+
 		      ;; Source MAC address
-		      (src_mac  (concatenate 'string
+		      (setq src_mac  (concatenate 'string
 					     (int2hex (aref buffer 6)) ":"
 					     (int2hex (aref buffer 7)) ":"
 					     (int2hex (aref buffer 8)) ":"
 					     (int2hex (aref buffer 9)) ":"
 					     (int2hex (aref buffer 10)) ":"
-					     (int2hex (aref buffer 11)) ))
+					     (int2hex (aref buffer 11)) ))	; setq src_mac	   
+
 		   (setq zeile (concatenate 'string zeile ";" dst_mac ";" src_mac))
-		   (write-line zeile file)
-		   ))))
-    (close file)))
+
+		      ;; Frame type
+		      (setq frame_type  (concatenate 'string
+						 (int2hex (aref buffer 12)) (int2hex (aref buffer 13))))
+		      ;; Declare variables for L3/L4
+		      (setq ip_ver"")
+		      (setq ip_ihl "")
+		      (setq tos "")
+		      (setq ip_len "")
+		      (setq ip_id "")
+		      (setq ip_off "")
+		      (setq ip_ttl "")
+		      (setq ip_p "")
+		      (setq ip_sum "")
+		      (setq ip_src "")
+		      (setq ip_dst "")
+		      (setq tcp_src "")
+		      (setq tcp_dst "")
+		      (setq tcp_seq "")
+		      (setq tcp_ack "")
+		      (setq tcp_off "")
+		      (setq tcp_rsv "")
+		      (setq tcp_flg "")
+		      (setq tcp_wnd "")
+		      (setq tcp_chk "")
+		      (setq tcp_urg "")
+
+		 (setq ip_ver (int2hex (floor (aref buffer 14) 16)))
+		 ;; Ipv4 Initial header length
+		 (setq ihl (* (mod (aref buffer 14) 16) 32))
+		 ;; IPv4 Type of Service
+		 (setq tos (int2hex(aref buffer 15)))
+		 ;; IPv4 length
+		 (setq ip_len  (concatenate 'string
+					    (int2hex (aref buffer 16)) (int2hex (aref buffer 17))))
+		 ;; IPv4 identification
+		 (setq ip_id  (concatenate 'string
+					   (int2hex (aref buffer 18)) (int2hex (aref buffer 19))))
+		 ;; IPv4 offset
+		 (setq ip_off  (concatenate 'string
+					    (int2hex (aref buffer 20)) (int2hex (aref buffer 21))))
+		 ;; IPv4 time-to-live
+		 (setq ip_ttl (int2hex (aref buffer 22)))
+
+		   
+		   (setq zeile (concatenate 'string zeile ";" ip_ver ";" ip_ihl))
+
+		   
+		   (write-line zeile file)		   
+		   
+		   ))) ; plokami:capture reader
+
+      
+      ) ; plokami:with-pcap-reader
+  
+		   
+ (close file))) ; let file open...
 
