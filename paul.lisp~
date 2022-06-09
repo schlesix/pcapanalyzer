@@ -1,0 +1,19 @@
+;; - This short program opens a pcap file and extracts some informations from each frame.
+;; - It ist written in Common LISP.
+;; - The program uses the "plokami" module to extract Ethernet frames from the pcap.
+;;
+
+(ql:quickload "plokami")
+(use-package :plokami)
+;;(find-all-devs)
+
+(defun int2hex (int_value)
+  "Convert a decimal value into a hexadecimal value. Currently only for Bytes (0-255)"
+  ;; hexstr ist der hexadezimale Rückgabewert
+  (let* ((hexstr (write-to-string int_value :base 16)   )
+	 ;; Hexadezimalzahl ggfs. auf zwei Stellen erweitern	 
+	 (l (length hexstr) ))
+    (if (= 1 l)
+        (setq hexstr  (concatenate 'string "0" hexstr)))
+    hexstr
+    ))
