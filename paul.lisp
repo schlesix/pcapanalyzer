@@ -26,13 +26,13 @@
 (let ((file (open #P"/Users/thomas/Documents/Development/pcapanalyzer/test.csv" :direction :output
 										  :if-exists :append
 										  :if-does-not-exist :create)))
-(write-line "TimeIndexSec;TimeIndexUsec;CaptureLength;Length;DstMAC;SrcMAC;FrameType;IpVer;IpIHL;IpTOS;IpLen;IpId;IpOffset;IpTTL;IpL4Proto;IpChkSum;IpSrc;IpDst;TcpSrcPort;TcpDstPort;TcpSeqNo;TcpAckNo;TcpOffset;TcpResv;TcpFlags;TcpWnd;TcpChkSum;TcpUrgPtr" file)
+(write-line "TimeIndexSec;TimeIndexUsec;CaptureLength;Length;DstMAC;SrcMAC;FrameType;IpVer;IpIHL;IpTOS;IpLen;IpId;IpOffset;IpTTL;IpL4Proto;IpChkSum;IpSrc;IpDst;TcpSrcPort;TcpDstPort;TcpSeqNo;TcpAckNo;TcpOffset;TcpResv;TcpFlags;TcpWnd;TcpChkSum;TcpUrgPtr;PayloadHash" file)
 
     (plokami:with-pcap-reader (reader "/Users/thomas/Documents/Development/pcapanalyzer/test.pcapng" :snaplen 1500)
 
       (plokami:capture reader -1
                (lambda (sec usec caplen len buffer)
-		 (let ((zeile nil)(zahl 0)(dst_mac "")(src_mac "") (ip_ver "") (ip_ihl "") (ip_len "") (ip_id "") (ip_off "") (ip_ttl "") (ip_p "") (ip_sum "") (ip_src "") (ip_dst "") (tcp_src "") (tcp_dst "") (tcp_seq "") (tcp_ack "") (tcp_off "") (tcp_rsv "") (tcp_flg "") (tcp_wnd "") (tcp_chk "") (tcp_urg "")  )
+		 (let ((zeile nil) (zahl 0)(dst_mac "")(src_mac "") (frame_type "") (ip_ver "") (ip_ihl "") (ip_tos "")  (ip_len "") (ip_id "") (ip_off "") (ip_ttl "") (ip_p "") (ip_sum "") (ip_src "") (ip_dst "") (tcp_src "") (tcp_dst "") (tcp_seq "") (tcp_ack "") (tcp_off "") (tcp_rsv "") (tcp_flg "") (tcp_wnd "") (tcp_chk "") (tcp_urg "") (payloadhash "")) 
 
 		   (setq zeile "")
 		   (princ ">")
@@ -77,7 +77,7 @@
 		      ;; Declare variables for L3/L4
 		      (setq ip_ver"")
 		      (setq ip_ihl "")
-		      (setq tos "")
+		      (setq ip_tos "")
 		      (setq ip_len "")
 		      (setq ip_id "")
 		      (setq ip_off "")
@@ -96,12 +96,24 @@
 		      (setq tcp_wnd "")
 		      (setq tcp_chk "")
 		      (setq tcp_urg "")
+		   		     ; (setq tcp_urg (map 'string #'code-char (md5:md5sum-sequence (subseq buffer 21 caplen))))
+		   (setq tcp_urg  (md5:md5sum-sequence (subseq buffer 21 caplen)))
+		   		   ;(loop for elem across tcp_urg do (print  (int2hex  elem)     ))
+		   		   (loop for elem across tcp_urg do (setq payloadhash (concatenate 'string payloadhash (int2hex  elem)     )))
 
+		;       (Print "->")
+
+		;			(princ payloadhash)
+		  ; (print  (write-to-string (subseq buffer 21 caplen)))
+
+		 ;  (print (write-to-string tcp_urg))
+		 ;  (Print (write-to-string (sxhash (aref buffer ))))
+		; (print "<-")
 		 (setq ip_ver (int2hex (floor (aref buffer 14) 16)))
 		 ;; Ipv4 Initial header length
-		 (setq ihl (* (mod (aref buffer 14) 16) 32))
+		 (setq ip_ihl (int2hex (* (mod (aref buffer 14) 16) 4)))
 		 ;; IPv4 Type of Service
-		 (setq tos (int2hex(aref buffer 15)))
+		 (setq ip_tos (int2hex(aref buffer 15)))
 		 ;; IPv4 length
 		 (setq ip_len  (concatenate 'string
 					    (int2hex (aref buffer 16)) (int2hex (aref buffer 17))))
@@ -115,7 +127,52 @@
 		 (setq ip_ttl (int2hex (aref buffer 22)))
 
 		   
-		   (setq zeile (concatenate 'string zeile ";" ip_ver ";" ip_ihl))
+		   (setq zeile (concatenate 'string zeile ";" frame_type  ";" ip_ver ";" ip_ihl ";" ip_tos ";" ip_len ";" ip_id ";" ip_off ";" ip_ttl))
+
+ (setq ip_p (int2hex (aref buffer 23)))
+		 ;; IPv4 Header checksum
+		 (setq ip_sum  (concatenate 'string
+					    (int2hex (aref buffer 24)) (int2hex (aref buffer 25))))
+		 ;; IPv4 source address
+		 (setq ip_src  (concatenate 'string
+					    (write-to-string (aref buffer 26)) "." (write-to-string (aref buffer 27)) "." (write-to-string (aref buffer 28)) "."  (write-to-string (aref buffer 29))))
+		 ;; IPv4 destination address
+		 (setq ip_dst  (concatenate 'string
+					    (write-to-string (aref buffer 30)) "." (write-to-string (aref buffer 31)) "." (write-to-string (aref buffer 32)) "."  (write-to-string (aref buffer 33))))
+		 ;; TCP source port
+		 (setq tcp_src  (concatenate 'string
+					     (int2hex (aref buffer 34)) (int2hex (aref buffer 35))))
+		 ;; TCP destination port
+		 (setq tcp_dst  (concatenate 'string
+					     (int2hex (aref buffer 36)) (int2hex (aref buffer 37))))
+		 ;; TCP sequence number
+		 (setq tcp_seq  (concatenate 'string
+					     (int2hex (aref buffer 38)) (int2hex (aref buffer 39))
+					     (int2hex (aref buffer 40)) (int2hex (aref buffer 41)) ))
+		 ;; TCP acknowledge number
+		 (setq tcp_ack  (concatenate 'string
+					     (int2hex (aref buffer 42)) (int2hex (aref buffer 43))
+					     (int2hex (aref buffer 44)) (int2hex (aref buffer 45)) ))
+
+		   (setq zeile (concatenate 'string zeile ";" ip_p ";" ip_sum ";" ip_src ";" ip_dst ";" tcp_src ";" tcp_dst ";" tcp_seq ";" tcp_ack))
+
+		 ;; Tcp offset
+		 (setq tcp_off (int2hex (floor (aref buffer 46) 16)))
+		 ;; TCP reserved
+		 (setq tcp_rsv (int2hex (* (mod (aref buffer 46) 16) 32)))
+		 ;; TCP flags
+		 (setq tcp_flg (int2hex (aref buffer 47)))
+		 ;; TCP window size
+		 (setq tcp_wnd  (concatenate 'string
+					     (int2hex (aref buffer 48)) (int2hex (aref buffer 49))))
+		 ;; TCP checksum
+		 (setq tcp_chk  (concatenate 'string
+					     (int2hex (aref buffer 50)) (int2hex (aref buffer 51))))
+		 ;; TCP urgent pointer
+		 (setq tcp_urg  (concatenate 'string
+					     (int2hex (aref buffer 52)) (int2hex (aref buffer 53))))		   
+
+		   (setq zeile (concatenate 'string zeile ";" tcp_off ";" tcp_rsv ";" tcp_flg ";" tcp_wnd ";" tcp_chk ";" tcp_urg ";" payloadhash))
 
 		   
 		   (write-line zeile file)		   
